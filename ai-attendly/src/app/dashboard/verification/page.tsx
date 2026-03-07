@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import DashboardShell from "@/components/dashboard-shell";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDocs } from "firebase/firestore";
 import { CheckCircle, AlertTriangle, User, Calendar as CalendarIcon, FileText, Loader2 } from "lucide-react";
 
 export default function VerificationPage() {
@@ -36,13 +36,33 @@ export default function VerificationPage() {
     return () => unsubscribe();
   }, [profile]);
 
-  const handleVerify = async (requestId: string, status: "verified" | "flagged") => {
+  const [outcomes, setOutcomes] = useState<Record<string, "win" | "participation">>( {});
+
+  const handleVerify = async (requestId: string, studentUsername: string, status: "verified" | "flagged") => {
+    const outcome = outcomes[requestId] || "participation";
     try {
+      // 1. Update Request
       await updateDoc(doc(db, "od_requests", requestId), {
         verification_status: status,
         verified_by: profile?.username,
-        verified_at: serverTimestamp()
+        verified_at: serverTimestamp(),
+        outcome: status === "verified" ? outcome : null
       });
+
+      // 2. Update Student Profile Stats if verified
+      if (status === "verified") {
+        const studentSnap = await getDocs(query(collection(db, "users"), where("username", "==", studentUsername)));
+        if (!studentSnap.empty) {
+          const studentDoc = studentSnap.docs[0];
+          const currentWins = studentDoc.data().wins || 0;
+          const currentLosses = studentDoc.data().losses || 0;
+          
+          await updateDoc(doc(db, "users", studentDoc.id), {
+            wins: outcome === "win" ? currentWins + 1 : currentWins,
+            losses: outcome === "participation" ? currentLosses + 1 : currentLosses
+          });
+        }
+      }
     } catch (error) {
       console.error("Error verifying attendance:", error);
     }
@@ -86,27 +106,47 @@ export default function VerificationPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex gap-3 pt-4 border-t border-slate-50">
-                  {!profile ? null : profile.role === "mentor" ? (
-                    <>
+                <div className="mt-6 space-y-4 pt-4 border-t border-slate-50">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Event Outcome</label>
+                    <div className="flex gap-2">
                       <button 
-                        onClick={() => handleVerify(req.id, "flagged")}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-orange-200 text-orange-600 rounded-xl hover:bg-orange-50 transition-all font-bold text-xs italic"
+                        onClick={() => setOutcomes({...outcomes, [req.id]: "win"})}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase transition-all border ${outcomes[req.id] === "win" ? "bg-green-600 text-white border-green-600 shadow-lg shadow-green-100" : "bg-white text-slate-400 border-slate-100 hover:border-green-200"}`}
                       >
-                        <AlertTriangle size={14} /> Flag Proof
+                        Won / Success
                       </button>
                       <button 
-                        onClick={() => handleVerify(req.id, "verified")}
-                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 font-bold text-xs italic"
+                        onClick={() => setOutcomes({...outcomes, [req.id]: "participation"})}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase transition-all border ${outcomes[req.id] === "participation" || !outcomes[req.id] ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100" : "bg-white text-slate-400 border-slate-100 hover:border-blue-200"}`}
                       >
-                        <CheckCircle size={14} /> Verify Attendance
+                        Participated
                       </button>
-                    </>
-                  ) : (
-                    <div className="w-full text-center py-2 bg-slate-50 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
-                      View Only (Mentor Verification Pending)
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex gap-3 mt-4">
+                    {!profile ? null : profile.role === "mentor" ? (
+                      <>
+                        <button 
+                          onClick={() => handleVerify(req.id, req.student_id, "flagged")}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-orange-200 text-orange-600 rounded-xl hover:bg-orange-50 transition-all font-bold text-xs italic"
+                        >
+                          <AlertTriangle size={14} /> Flag Proof
+                        </button>
+                        <button 
+                          onClick={() => handleVerify(req.id, req.student_id, "verified")}
+                          className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold text-xs italic"
+                        >
+                          <CheckCircle size={14} /> Final Approval
+                        </button>
+                      </>
+                    ) : (
+                      <div className="w-full text-center py-2 bg-slate-50 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                        View Only (Mentor Verification Pending)
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

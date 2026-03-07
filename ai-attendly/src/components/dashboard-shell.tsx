@@ -29,8 +29,19 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!loading && !profile) {
       router.push("/login");
+      return;
     }
-  }, [profile, loading, router]);
+
+    // Onboarding Guard: Force students to complete profile
+    if (
+      !loading && 
+      profile?.role === "student" && 
+      !profile?.profile_completed && 
+      pathname !== "/dashboard/profile/setup"
+    ) {
+      router.push("/dashboard/profile/setup");
+    }
+  }, [profile, loading, router, pathname]);
 
   if (loading || !profile) {
     return (

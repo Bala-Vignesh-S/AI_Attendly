@@ -24,7 +24,7 @@ export default function AdminPage() {
     });
 
     // 2. Fetch Users
-    const unsubUsers = onSnapshot(collection(db, "user_profiles"), (snap) => {
+    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
       const allUsers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setStudents(allUsers.filter((u: any) => u.role === "student"));
       setFaculty(allUsers.filter((u: any) => u.role === "mentor" || u.role === "hod"));

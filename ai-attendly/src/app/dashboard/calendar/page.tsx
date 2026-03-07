@@ -104,10 +104,16 @@ export default function CalendarPage() {
               eventClassNames="rounded-lg px-2 py-0.5 text-[10px] font-bold italic shadow-sm"
               dayCellClassNames={(arg) => {
                  const dateStr = arg.date.toISOString().split("T")[0];
-                 const count = dailyCounts.find(c => c.date === dateStr)?.total || 0;
-                 if (count > 20) return "bg-red-50/50";
-                 if (count > 10) return "bg-orange-50/50";
-                 return "";
+                 const dayData = dailyCounts.find(c => c.date === dateStr);
+                 const count = dayData?.total || 0;
+                 if (count === 0) return "";
+                 
+                 const totalLimit = Object.values(limits).reduce((a: number, b: any) => a + (Number(b) || 0), 0) || 100;
+                 const percent = (count / totalLimit) * 100;
+                 
+                 if (percent > 80) return "bg-red-200/60";
+                 if (percent > 50) return "bg-orange-100/60";
+                 return "bg-green-50/60";
               }}
             />
           </div>
@@ -133,44 +139,65 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="p-8 space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    {[1, 2, 3, 4].map(y => (
-                      <div key={y} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Year {y} Slots</p>
+                  {profile?.role === "student" ? (
+                    <div className="space-y-6">
+                      <div className="bg-blue-50 p-6 rounded-[2rem] border-2 border-blue-100 shadow-inner">
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Year {profile.year} Capacity</p>
                         <div className="flex items-end justify-between">
-                          <span className="text-2xl font-bold text-slate-800">{selectedDate.counts[y] || 0}</span>
-                          <span className="text-[10px] font-bold text-slate-400 mb-1">/ {limits[y] || 25} Limit</span>
+                          <span className="text-4xl font-black text-slate-800">{selectedDate.counts[profile.year || ""] || 0}</span>
+                          <span className="text-sm font-bold text-slate-400 mb-1">/ {limits[profile.year || ""] || 20} Slots Used</span>
                         </div>
-                        <div className="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div className="mt-4 w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                           <div 
-                            className="bg-blue-600 h-full rounded-full transition-all duration-500" 
-                            style={{ width: `${((selectedDate.counts[y] || 0) / (limits[y] || 25)) * 100}%` }}
+                            className="bg-blue-600 h-full rounded-full transition-all duration-1000" 
+                            style={{ width: `${((selectedDate.counts[profile.year || ""] || 0) / (limits[profile.year || ""] || 20)) * 100}%` }}
                           />
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                       <Users size={14} /> Approved Students ({selectedDate.events.length})
-                    </h3>
-                    <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                      {selectedDate.events.length > 0 ? selectedDate.events.map((e: any) => (
-                        <div key={e.id} className="flex items-center justify-between p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-slate-800">{e.extendedProps.student_name}</span>
-                            <span className="text-[10px] text-slate-500 italic font-medium">{e.extendedProps.student_id}</span>
-                          </div>
-                          <span className="text-[10px] bg-white text-blue-600 px-2 py-1 rounded-lg border border-blue-200 font-bold italic truncate max-w-[120px]">
-                            {e.extendedProps.event_name}
-                          </span>
-                        </div>
-                      )) : (
-                        <p className="text-sm text-slate-400 italic text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No ODs scheduled for this date.</p>
-                      )}
+                      <p className="text-center text-xs text-slate-400 italic font-medium px-6">Detailed departmental logs are restricted to faculty only for student privacy.</p>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        {[1, 2, 3, 4].map(y => (
+                          <div key={y} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Year {y} Slots</p>
+                            <div className="flex items-end justify-between">
+                              <span className="text-2xl font-bold text-slate-800">{selectedDate.counts[y] || 0}</span>
+                              <span className="text-[10px] font-bold text-slate-400 mb-1">/ {limits[y] || 25} Limit</span>
+                            </div>
+                            <div className="mt-2 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className="bg-blue-600 h-full rounded-full transition-all duration-500" 
+                                style={{ width: `${((selectedDate.counts[y] || 0) / (limits[y] || 25)) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                           <Users size={14} /> Approved Students ({selectedDate.events.length})
+                        </h3>
+                        <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                          {selectedDate.events.length > 0 ? selectedDate.events.map((e: any) => (
+                            <div key={e.id} className="flex items-center justify-between p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-slate-800">{e.extendedProps.student_name}</span>
+                                <span className="text-[10px] text-slate-500 italic font-medium">{e.extendedProps.student_id}</span>
+                              </div>
+                              <span className="text-[10px] bg-white text-blue-600 px-2 py-1 rounded-lg border border-blue-200 font-bold italic truncate max-w-[120px]">
+                                {e.extendedProps.event_name}
+                              </span>
+                            </div>
+                          )) : (
+                            <p className="text-sm text-slate-400 italic text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No ODs scheduled for this date.</p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                   
                   <button 
                     onClick={() => setSelectedDate(null)}

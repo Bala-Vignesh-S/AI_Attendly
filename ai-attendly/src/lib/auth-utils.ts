@@ -9,6 +9,12 @@ export interface UserProfile {
   role: UserRole;
   name: string;
   email: string;
+  profile_completed?: boolean;
+  year?: string;
+  section?: string;
+  mentor_id?: string;
+  wins?: number;
+  losses?: number;
 }
 
 export const detectRoleFromUsername = (username: string): "student" | "staff" => {

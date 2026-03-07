@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { detectRoleFromUsername } from "@/lib/auth-utils";
 import { ShieldCheck, GraduationCap, User as UserIcon } from "lucide-react";
@@ -53,6 +53,25 @@ export default function LoginPage() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!username) {
+      alert("Please enter your username first to reset password.");
+      return;
+    }
+    try {
+      let email = username;
+      if (!username.includes("@")) {
+        if (username === "admin.ai" || username === "balavignesh.ai") email = "balavignesh.ai@gmail.com";
+        else if (username.endsWith(".ai")) email = `${username.toLowerCase()}@sairam.edu.in`;
+        else email = `${username.toLowerCase()}@sairamtap.edu.in`;
+      }
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset email sent to: " + email);
+    } catch (err: any) {
+      alert("Error: " + err.message);
     }
   };
 
@@ -134,6 +153,16 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+
+            <div className="flex justify-end">
+               <button 
+                 type="button" 
+                 onClick={handlePasswordReset}
+                 className="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest italic"
+               >
+                 Forgot Password?
+               </button>
+            </div>
 
             <button
               type="submit"

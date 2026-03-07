@@ -5,7 +5,7 @@ import DashboardShell from "@/components/dashboard-shell";
 import { useAuth } from "@/context/auth-context";
 import { Send, MapPin, Calendar as CalendarIcon, FileText, CheckCircle2 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 export default function ApplyODPage() {
@@ -25,21 +25,59 @@ export default function ApplyODPage() {
     
     setIsSubmitting(true);
     try {
+      // 1. Validate Limits for each date in range
+      const start = new Date(formData.start_date);
+      const end = new Date(formData.end_date);
+      
+      const datesToCheck = [];
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        datesToCheck.push(new Date(d).toISOString().split("T")[0]);
+      }
+
+      // Check each date
+      for (const dateStr of datesToCheck) {
+        // Query current approved/pending ODs for this year level on this date
+        const q = query(
+          collection(db, "od_requests"), 
+          where("student_year", "==", profile.year),
+          where("start_date", "<=", dateStr),
+          where("end_date", ">=", dateStr)
+        );
+        
+        const [snap, limitDoc] = await Promise.all([
+          getDocs(q),
+          getDocs(query(collection(db, "year_limits"), where("year", "==", Number(profile.year))))
+        ]);
+
+        const currentCount = snap.docs.length;
+        const yearLimit = limitDoc.docs[0]?.data().limit || 20;
+
+        if (currentCount >= yearLimit) {
+          alert(`Limit reached for Year ${profile.year} on ${dateStr} (${currentCount}/${yearLimit} slots filled). Please choose another date.`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // 2. Submit Request
       await addDoc(collection(db, "od_requests"), {
         student_id: profile.username,
         student_name: profile.name,
-        mentor_id: "jeena.ai", // This would be fetched from student profile in prod
+        student_year: profile.year,
+        student_section: profile.section,
+        mentor_id: profile.mentor_id || "not_assigned",
         ...formData,
         mentor_status: "pending",
         hod_status: "pending",
         verification_status: "not_started",
         created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
       });
       
       router.push("/dashboard/requests");
     } catch (error) {
       console.error("Error submitting OD:", error);
-      alert("Failed to submit OD. Check console for details.");
+      alert("Failed to submit. " + (error as any).message);
     } finally {
       setIsSubmitting(false);
     }

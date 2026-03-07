@@ -87,18 +87,26 @@ export default function VerificationPage() {
                 </div>
 
                 <div className="mt-6 flex gap-3 pt-4 border-t border-slate-50">
-                  <button 
-                    onClick={() => handleVerify(req.id, "flagged")}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-orange-200 text-orange-600 rounded-xl hover:bg-orange-50 transition-all font-bold text-xs italic"
-                  >
-                    <AlertTriangle size={14} /> Flag Proof
-                  </button>
-                  <button 
-                    onClick={() => handleVerify(req.id, "verified")}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 font-bold text-xs italic"
-                  >
-                    <CheckCircle size={14} /> Verify Attendance
-                  </button>
+                  {!profile ? null : profile.role === "mentor" ? (
+                    <>
+                      <button 
+                        onClick={() => handleVerify(req.id, "flagged")}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-orange-200 text-orange-600 rounded-xl hover:bg-orange-50 transition-all font-bold text-xs italic"
+                      >
+                        <AlertTriangle size={14} /> Flag Proof
+                      </button>
+                      <button 
+                        onClick={() => handleVerify(req.id, "verified")}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 font-bold text-xs italic"
+                      >
+                        <CheckCircle size={14} /> Verify Attendance
+                      </button>
+                    </>
+                  ) : (
+                    <div className="w-full text-center py-2 bg-slate-50 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                      View Only (Mentor Verification Pending)
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

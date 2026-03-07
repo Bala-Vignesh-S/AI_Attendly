@@ -30,7 +30,7 @@ export default function LoginPage() {
       let email = username;
       if (!username.includes("@")) {
         if (username === "admin.ai" || username === "balavignesh.ai") {
-          email = `${username.toLowerCase()}@gmail.com`;
+          email = "balavignesh.ai@gmail.com";
         } else if (username.endsWith(".ai")) {
           email = `${username.toLowerCase()}@sairam.edu.in`;
         } else if (username.toUpperCase().startsWith("SEC")) {
@@ -69,7 +69,7 @@ export default function LoginPage() {
       let email = username;
       if (!username.includes("@")) {
         if (username === "admin.ai" || username === "balavignesh.ai") {
-          email = `${username.toLowerCase()}@gmail.com`;
+          email = "balavignesh.ai@gmail.com";
         } else if (username.endsWith(".ai")) {
           email = `${username.toLowerCase()}@sairam.edu.in`;
         } else if (username.toUpperCase().startsWith("SEC")) {

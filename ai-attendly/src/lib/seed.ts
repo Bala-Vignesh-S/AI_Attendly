@@ -3,15 +3,15 @@ import { doc, setDoc, collection, getDocs, query, where, limit } from "firebase/
 
 export const seedInitialData = async (uid: string, username: string, name: string) => {
   const role = (username === "admin.ai" || username === "balavignesh.ai") ? "admin" : (username.endsWith(".ai") ? (username === "hod.ai" ? "hod" : "mentor") : "student");
-  
+
   // Custom Domain Logic
   let email = username;
   if (!username.includes("@")) {
-    if (username === "admin.ai" || username === "balavignesh.ai") email = `${username.toLowerCase()}@gmail.com`;
+    if (username === "admin.ai" || username === "balavignesh.ai") email = "balavignesh.ai@gmail.com";
     else if (username.endsWith(".ai")) email = `${username.toLowerCase()}@sairam.edu.in`;
     else email = `${username.toLowerCase()}@sairamtap.edu.in`;
   }
-  
+
   // Create User Profile
   await setDoc(doc(db, "users", uid), {
     uid,
